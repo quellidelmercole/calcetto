@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>⚽ Calcetto Mercoledì</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;900&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #21262d;
+    --border: #30363d;
+    --green: #1aff6e;
+    --green-dim: #0d7a34;
+    --green-bg: #0a2e1a;
+    --yellow: #ffd60a;
+    --yellow-dim: #8a7000;
+    --yellow-bg: #2e2800;
+    --white: #e6edf3;
+    --muted: #8b949e;
+    --red: #ff4757;
+    --accent: #1aff6e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+
+  /* ── HEADER ── */
+  #header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    padding: 0;
+  }
+
+  #header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    cursor: default;
+    user-select: none;
+  }
+
+  #logo-svg {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  #logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+  }
+
+  #logo-text .team-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: var(--white);
+  }
+
+  #logo-text .team-sub {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  #day-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+  }
+
+  /* Reset nascosto — appare solo dopo 3 tap sul logo */
+  #btn-reset {
+    display: none;
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--red);
+    border: 1px solid var(--red);
+    border-radius: 8px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #btn-reset.visible { display: inline-block; }
+  #btn-reset:hover { background: rgba(255,71,87,0.1); }
+
+  /* ── STATUS BAR ── */
+  #status-bar {
+    display: flex;
+    gap: 0;
+    height: 52px;
+  }
+
+  .status-pill {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 1.5px;
+    border-right: 1px solid var(--border);
+    transition: background 0.3s;
+  }
+  .status-pill:last-child { border-right: none; }
+
+  #pill-presenti {
+    color: var(--muted);
+  }
+  #pill-presenti.active {
+    background: var(--green-bg);
+    color: var(--green);
+  }
+  #pill-presenti.full {
+    background: var(--green-bg);
+    color: var(--green);
+    animation: pulse-green 1.5s ease infinite;
+  }
+
+  #pill-riserve {
+    color: var(--muted);
+  }
+  #pill-riserve.active {
+    background: var(--yellow-bg);
+    color: var(--yellow);
+  }
+
+  .pill-num {
+    font-size: 24px;
+    line-height: 1;
+  }
+  .pill-label {
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+
+  @keyframes pulse-green {
+    0%, 100% { background: var(--green-bg); }
+    50% { background: #0f3d22; }
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-wrap {
+    height: 3px;
+    background: var(--surface2);
+    overflow: hidden;
+  }
+  #progress-bar {
+    height: 100%;
+    background: var(--green);
+    width: 0%;
+    transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 0 12px var(--green);
+  }
+  #progress-bar.full {
+    width: 100% !important;
+    background: var(--green);
+  }
+
+  /* ── CONFIRMED BANNER ── */
+  #confirmed-banner {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: var(--green);
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    padding: 10px;
+    animation: flash-banner 0.6s ease;
+  }
+  #confirmed-banner.show { display: flex; }
+
+  @keyframes flash-banner {
+    0% { transform: scaleY(0); opacity: 0; }
+    100% { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* ── WEEK LABEL BAR ── */
+  #actions-bar {
+    padding: 10px 16px 0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+
+  #week-label {
+    flex: 1;
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  #btn-reset {
+    font-family: 'Barlow', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #btn-reset:hover {
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* ── PLAYER GRID ── */
+  #grid-wrap {
+    padding: 12px 12px 80px;
+  }
+
+  #section-presenti-label, #section-riserve-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 16px 4px 8px;
+  }
+  #section-riserve-label { display: none; }
+
+  #grid-presenti, #grid-riserve {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* ── PLAYER CARD ── */
+  .player-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .player-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .player-card:active {
+    transform: scale(0.96);
+  }
+
+  .player-card .cognome {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    line-height: 1;
+    color: var(--white);
+    transition: color 0.2s;
+  }
+
+  .player-card .nome {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-top: 3px;
+    transition: color 0.2s;
+  }
+
+  .player-card .check {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 11px;
+  }
+
+  /* PRESENTE */
+  .player-card.presente {
+    background: var(--green-bg);
+    border-color: var(--green-dim);
+    box-shadow: 0 0 20px rgba(26,255,110,0.08);
+  }
+  .player-card.presente .cognome { color: var(--green); }
+  .player-card.presente .nome { color: rgba(26,255,110,0.6); }
+  .player-card.presente .check {
+    background: var(--green);
+    border-color: var(--green);
+    color: #000;
+    font-weight: 900;
+  }
+
+  /* RISERVA */
+  .player-card.riserva {
+    background: var(--yellow-bg);
+    border-color: var(--yellow-dim);
+    box-shadow: 0 0 20px rgba(255,214,10,0.08);
+  }
+  .player-card.riserva .cognome { color: var(--yellow); }
+  .player-card.riserva .nome { color: rgba(255,214,10,0.6); }
+  .player-card.riserva .check {
+    background: var(--yellow);
+    border-color: var(--yellow);
+    color: #000;
+    font-weight: 900;
+  }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 10px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--white);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+    z-index: 200;
+    pointer-events: none;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── LOADING ── */
+  #loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 16px;
+  }
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── OFFLINE NOTICE ── */
+  #offline-notice {
+    display: none;
+    background: #2e1800;
+    border-bottom: 1px solid #8a4000;
+    color: #ffa500;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px;
+    letter-spacing: 0.5px;
+  }
+  #offline-notice.show { display: block; }
+
+  /* NUMERIC BADGE */
+  .num-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    border-radius: 14px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    line-height: 1;
+    padding: 0 4px;
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <span style="color:var(--muted);font-size:14px;letter-spacing:1px;">Connessione in corso…</span>
+</div>
+
+<div id="app" style="display:none;">
+
+  <div id="offline-notice">⚠️ Modalità offline – le modifiche verranno sincronizzate alla riconnessione</div>
+
+  <div id="header">
+    <div id="header-top">
+      <div id="logo-wrap">
+        <svg id="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <!-- Scarpa sinistra (dietro) -->
+          <g opacity="0.65" transform="translate(4, 6) rotate(-8, 50, 60)">
+            <!-- Tomaia -->
+            <path d="M22 58 Q20 48 26 40 Q32 33 42 32 L58 33 Q64 34 66 40 L64 58 Z"
+                  fill="#0d7a34" stroke="#1aff6e" stroke-width="1.2"/>
+            <!-- Linguetta -->
+            <path d="M38 32 Q40 26 44 25 Q48 24 50 26 L50 33 L38 33 Z"
+                  fill="#0a5c28" stroke="#1aff6e" stroke-width="0.8"/>
+            <!-- Suola -->
+            <path d="M20 58 Q18 62 20 65 L68 65 Q72 65 72 62 L64 58 Z"
+                  fill="#085020" stroke="#1aff6e" stroke-width="1"/>
+            <!-- Tacchetti -->
+            <rect x="24" y="64" width="7" height="4" rx="1.5" fill="#1aff6e" opacity="0.8"/>
+            <rect x="36" y="64" width="7" height="4" rx="1.5" fill="#1aff6e" opacity="0.8"/>
+            <rect x="48" y="64" width="7" height="4" rx="1.5" fill="#1aff6e" opacity="0.8"/>
+            <rect x="60" y="64" width="7" height="4" rx="1.5" fill="#1aff6e" opacity="0.8"/>
+            <!-- Lacci -->
+            <line x1="39" y1="35" x2="61" y2="35" stroke="#1aff6e" stroke-width="1" opacity="0.9"/>
+            <line x1="38" y1="40" x2="63" y2="40" stroke="#1aff6e" stroke-width="1" opacity="0.9"/>
+            <line x1="38" y1="45" x2="63" y2="45" stroke="#1aff6e" stroke-width="1" opacity="0.9"/>
+            <line x1="38" y1="50" x2="63" y2="50" stroke="#1aff6e" stroke-width="1" opacity="0.9"/>
+          </g>
+          <!-- Scarpa destra (davanti) -->
+          <g transform="translate(-4, -2) rotate(10, 50, 60)">
+            <!-- Tomaia -->
+            <path d="M28 62 Q26 52 32 44 Q38 37 48 36 L62 37 Q68 38 70 44 L68 62 Z"
+                  fill="#1aff6e" stroke="#0d7a34" stroke-width="1.2"/>
+            <!-- Linguetta -->
+            <path d="M44 36 Q46 30 50 29 Q54 28 56 30 L56 37 L44 37 Z"
+                  fill="#a0ffc0" stroke="#0d7a34" stroke-width="0.8"/>
+            <!-- Suola -->
+            <path d="M26 62 Q24 66 26 69 L72 69 Q76 69 76 66 L68 62 Z"
+                  fill="#085020" stroke="#0d7a34" stroke-width="1"/>
+            <!-- Tacchetti -->
+            <rect x="30" y="68" width="7" height="4" rx="1.5" fill="#e6edf3" opacity="0.9"/>
+            <rect x="42" y="68" width="7" height="4" rx="1.5" fill="#e6edf3" opacity="0.9"/>
+            <rect x="54" y="68" width="7" height="4" rx="1.5" fill="#e6edf3" opacity="0.9"/>
+            <rect x="66" y="68" width="7" height="4" rx="1.5" fill="#e6edf3" opacity="0.9"/>
+            <!-- Lacci -->
+            <line x1="45" y1="39" x2="67" y2="39" stroke="#085020" stroke-width="1.2" opacity="0.9"/>
+            <line x1="44" y1="44" x2="67" y2="44" stroke="#085020" stroke-width="1.2" opacity="0.9"/>
+            <line x1="44" y1="49" x2="67" y2="49" stroke="#085020" stroke-width="1.2" opacity="0.9"/>
+            <line x1="44" y1="54" x2="67" y2="54" stroke="#085020" stroke-width="1.2" opacity="0.9"/>
+          </g>
+        </svg>
+        <div id="logo-text">
+          <span class="team-name">QUELLI DEL MERCOLE'</span>
+          <span class="team-sub">Calcetto · Mercoledì</span>
+        </div>
+      </div>
+      <div id="day-badge">⚽ Mercoledì</div>
+      <button id="btn-reset">🔄 Reset</button>
+    </div>
+    <div id="status-bar">
+      <div class="status-pill" id="pill-presenti">
+        <span class="pill-label">PRESENTI</span>
+        <span class="pill-num num-badge" id="count-presenti">0</span>
+        <span class="pill-label">/ 10</span>
+      </div>
+      <div class="status-pill" id="pill-riserve">
+        <span class="pill-label">RISERVE</span>
+        <span class="pill-num num-badge" id="count-riserve">0</span>
+      </div>
+    </div>
+    <div id="progress-wrap"><div id="progress-bar"></div></div>
+    <div id="confirmed-banner">✅ LISTA COMPLETA — SI GIOCA!</div>
+  </div>
+
+  <div id="actions-bar">
+    <span id="week-label">Settimana corrente</span>
+  </div>
+
+  <div id="grid-wrap">
+    <div id="section-presenti-label">Giocatori</div>
+    <div id="grid-presenti"></div>
+    <div id="section-riserve-label">🟡 Riserve</div>
+    <div id="grid-riserve"></div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, onValue, set, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ─────────────────────────────────────────────────────
+// ⚠️  CONFIGURAZIONE FIREBASE
+// Vai su https://console.firebase.google.com/
+// Crea un progetto → Realtime Database → Regole: allow read, write: if true
+// Poi incolla qui i tuoi dati di configurazione:
+// ─────────────────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBL_WK3LwR7BRBubUjC27d7ZMYo4YOEv4A",
+  authDomain: "calcetto-mercole.firebaseapp.com",
+  databaseURL: "https://calcetto-mercole-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "calcetto-mercole",
+  storageBucket: "calcetto-mercole.firebasestorage.app",
+  messagingSenderId: "976761510415",
+  appId: "1:976761510415:web:f3965294c2bfbf1ce5217a"
+};
+// ─────────────────────────────────────────────────────
+
+const MAX_PRESENTI = 10;
+
+// Lista giocatori
+const PLAYERS = [
+  { cognome: "BALBUSSO",  nome: "CLAUDIO" },
+  { cognome: "BERGNACH",  nome: "CLAUDIO" },
+  { cognome: "BORTUZZO",  nome: "GIORGIO" },
+  { cognome: "CAVALLO",   nome: "MARCO" },
+  { cognome: "CAVUCLI",   nome: "MARCO" },
+  { cognome: "CIMENTI",   nome: "FEDERICO" },
+  { cognome: "DOMINICI",  nome: "GIAMPAOLO" },
+  { cognome: "DURIGON",   nome: "LORIS" },
+  { cognome: "D'URSO",    nome: "ANDREA" },
+  { cognome: "GAVIN",     nome: "ALESSANDRO" },
+  { cognome: "HARBERT",   nome: "RICHARD" },
+  { cognome: "INGENITO",  nome: "LORENZO" },
+  { cognome: "IRACI",     nome: "DANIELE" },
+  { cognome: "MIANI",     nome: "MARCO" },
+  { cognome: "MISSIO",    nome: "MAURIZIO" },
+  { cognome: "PERULLI",   nome: "MAURIZIO" },
+  { cognome: "ROMEO",     nome: "ANTONIO" },
+  { cognome: "SALAS",     nome: "HAROLD" },
+  { cognome: "SALERNO",   nome: "PASQUALE" },
+  { cognome: "SANTO",     nome: "MARCO" },
+  { cognome: "URCIUOLO",  nome: "ANTONIO" },
+];
+
+// Calcola chiave settimana corrente (es. "2025-W12")
+function getWeekKey() {
+  const now = new Date();
+  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+}
+
+function getWeekLabel() {
+  const now = new Date();
+  // Trova lunedì della settimana corrente
+  const day = now.getDay() || 7;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - day + 1);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const mesi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  const lun = `${monday.getDate()} ${mesi[monday.getMonth()]}`;
+  const dom = `${sunday.getDate()} ${mesi[sunday.getMonth()]}`;
+  return `📅 ${lun} – ${dom} ${sunday.getFullYear()}`;
+}
+
+// ─── DEMO MODE (senza Firebase) ──────────────────────
+const isDemo = firebaseConfig.apiKey === "INSERISCI-LA-TUA-API-KEY";
+let demoState = {};
+
+// Stato presenze: { "BALBUSSO_CLAUDIO": "presente" | "riserva" | null }
+let state = {};
+
+// ─── INIT ────────────────────────────────────────────
+let db, weekRef;
+
+function showToast(msg, duration = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function playerKey(p) {
+  return `${p.cognome}_${p.nome}`.replace(/'/g, '_');
+}
+
+function updateUI(newState) {
+  state = newState || {};
+  const presenti = PLAYERS.filter(p => state[playerKey(p)] === 'presente');
+  const riserve  = PLAYERS.filter(p => state[playerKey(p)] === 'riserva');
+  const nP = presenti.length;
+  const nR = riserve.length;
+
+  // Aggiorna counter
+  document.getElementById('count-presenti').textContent = nP;
+  document.getElementById('count-riserve').textContent  = nR;
+
+  // Progress bar
+  const pct = Math.min(100, (nP / MAX_PRESENTI) * 100);
+  const bar = document.getElementById('progress-bar');
+  bar.style.width = pct + '%';
+  bar.classList.toggle('full', nP >= MAX_PRESENTI);
+
+  // Pills attive
+  const pillP = document.getElementById('pill-presenti');
+  pillP.classList.remove('active','full');
+  if (nP >= MAX_PRESENTI) pillP.classList.add('full');
+  else if (nP > 0) pillP.classList.add('active');
+
+  const pillR = document.getElementById('pill-riserve');
+  pillR.classList.toggle('active', nR > 0);
+
+  // Banner confermato
+  const banner = document.getElementById('confirmed-banner');
+  banner.classList.toggle('show', nP >= MAX_PRESENTI);
+
+  // Sezione riserve
+  document.getElementById('section-riserve-label').style.display = nR > 0 ? '' : 'none';
+
+  // Render cards — normali
+  const gridP = document.getElementById('grid-presenti');
+  gridP.innerHTML = '';
+  const gridR = document.getElementById('grid-riserve');
+  gridR.innerHTML = '';
+
+  PLAYERS.forEach(p => {
+    const key  = playerKey(p);
+    const stat = state[key] || null;
+    const card = document.createElement('div');
+    card.className = 'player-card' + (stat ? ' ' + stat : '');
+    card.dataset.key = key;
+    card.innerHTML = `
+      <div class="check">${stat ? '✓' : ''}</div>
+      <div class="cognome">${p.cognome}</div>
+      <div class="nome">${p.nome}</div>
+    `;
+    card.addEventListener('click', () => handleClick(p, key, stat, nP));
+
+    if (stat === 'riserva') gridR.appendChild(card);
+    else gridP.appendChild(card);
+  });
+
+  // Week label
+  document.getElementById('week-label').textContent = getWeekLabel();
+}
+
+async function handleClick(p, key, currentStat, nPresenti) {
+  let newStat;
+  if (!currentStat) {
+    // Era assente → diventa presente o riserva
+    if (nPresenti < MAX_PRESENTI) {
+      newStat = 'presente';
+      showToast(`✅ ${p.cognome} è PRESENTE`);
+    } else {
+      newStat = 'riserva';
+      showToast(`🟡 ${p.cognome} in RISERVA`);
+    }
+  } else {
+    // Era presente/riserva → torna assente
+    newStat = null;
+    showToast(`❌ ${p.cognome} rimosso`);
+  }
+
+  if (isDemo) {
+    const newState = { ...state, [key]: newStat };
+    if (!newStat) delete newState[key];
+    updateUI(newState);
+  } else {
+    const weekKey = getWeekKey();
+    const dbPath  = ref(db, `calcetto/${weekKey}/${key}`);
+    await set(dbPath, newStat);
+  }
+}
+
+function renderApp() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = '';
+}
+
+// ── Tap segreto sul logo (3 tap rapidi) per mostrare/nascondere reset ──
+let tapCount = 0, tapTimer;
+document.getElementById('logo-wrap').addEventListener('click', () => {
+  tapCount++;
+  clearTimeout(tapTimer);
+  tapTimer = setTimeout(() => { tapCount = 0; }, 600);
+  if (tapCount >= 3) {
+    tapCount = 0;
+    const btn = document.getElementById('btn-reset');
+    btn.classList.toggle('visible');
+    showToast(btn.classList.contains('visible') ? '🔐 Modalità admin' : '🔒 Admin nascosto');
+  }
+});
+
+// Reset settimana
+document.getElementById('btn-reset').addEventListener('click', async () => {
+  if (!confirm('Sei sicuro di voler azzerare tutte le presenze di questa settimana?')) return;
+  if (isDemo) {
+    updateUI({});
+    showToast('🔄 Presenze azzerate');
+  } else {
+    const weekKey = getWeekKey();
+    await set(ref(db, `calcetto/${weekKey}`), null);
+    showToast('🔄 Presenze azzerate');
+  }
+});
+
+// Online/offline
+window.addEventListener('offline', () => document.getElementById('offline-notice').classList.add('show'));
+window.addEventListener('online',  () => document.getElementById('offline-notice').classList.remove('show'));
+
+// ─── START ───────────────────────────────────────────
+if (isDemo) {
+  // Modalità demo senza Firebase
+  console.warn('⚠️ Firebase non configurato — modalità demo locale.');
+  renderApp();
+  updateUI({});
+} else {
+  const app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+  const weekKey = getWeekKey();
+  weekRef = ref(db, `calcetto/${weekKey}`);
+
+  // Ascolta in real-time
+  onValue(weekRef, (snapshot) => {
+    renderApp();
+    updateUI(snapshot.val() || {});
+  }, (err) => {
+    console.error('Firebase error:', err);
+    renderApp();
+    updateUI({});
+    showToast('⚠️ Errore connessione – modalità offline');
+  });
+}
+</script>
+</body>
+</html>
