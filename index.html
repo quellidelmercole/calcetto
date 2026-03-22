@@ -317,15 +317,16 @@
     position: absolute;
     top: 10px;
     right: 10px;
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
     border: 1.5px solid var(--border);
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s;
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 700;
   }
 
   /* PRESENTE */
@@ -615,7 +616,7 @@ function getWeekLabel() {
 const isDemo = firebaseConfig.apiKey === "INSERISCI-LA-TUA-API-KEY";
 let demoState = {};
 
-// Stato presenze: { "BALBUSSO_CLAUDIO": "presente" | "riserva" | null }
+// Stato presenze: { "BALBUSSO_CLAUDIO": "presente" | "riserva:TIMESTAMP" | null }
 let state = {};
 
 // ─── INIT ────────────────────────────────────────────
@@ -633,10 +634,22 @@ function playerKey(p) {
   return `${p.cognome}_${p.nome}`.replace(/'/g, '_');
 }
 
+function getStatType(val) {
+  if (!val) return null;
+  if (val === 'presente') return 'presente';
+  if (typeof val === 'string' && val.startsWith('riserva')) return 'riserva';
+  return null;
+}
+
+function getRiservaTs(val) {
+  if (!val || !val.startsWith('riserva:')) return 0;
+  return parseInt(val.split(':')[1]) || 0;
+}
+
 function updateUI(newState) {
   state = newState || {};
-  const presenti = PLAYERS.filter(p => state[playerKey(p)] === 'presente');
-  const riserve  = PLAYERS.filter(p => state[playerKey(p)] === 'riserva');
+  const presenti = PLAYERS.filter(p => getStatType(state[playerKey(p)]) === 'presente');
+  const riserve  = PLAYERS.filter(p => getStatType(state[playerKey(p)]) === 'riserva');
   const nP = presenti.length;
   const nR = riserve.length;
 
@@ -675,8 +688,9 @@ function updateUI(newState) {
   const listaBloccata = nP >= MAX_PRESENTI;
 
   PLAYERS.forEach(p => {
-    const key  = playerKey(p);
-    const stat = state[key] || null;
+    const key     = playerKey(p);
+    const raw     = state[key] || null;
+    const stat    = getStatType(raw);
     const isLocked = stat === 'presente' && listaBloccata;
     const card = document.createElement('div');
     card.className = 'player-card' + (stat ? ' ' + stat : '') + (isLocked ? ' locked' : '');
@@ -686,7 +700,22 @@ function updateUI(newState) {
       <div class="cognome">${p.cognome}</div>
       <div class="nome">${p.nome}</div>
     `;
-    card.addEventListener('click', () => handleClick(p, key, stat, nP));
+    // Calcola numero d'ordine per le riserve (ordinato per timestamp reale)
+    let riservaNum = '';
+    if (stat === 'riserva') {
+      const riserveOrdinati = PLAYERS
+        .filter(pl => getStatType(state[playerKey(pl)]) === 'riserva')
+        .sort((a, b) => getRiservaTs(state[playerKey(a)]) - getRiservaTs(state[playerKey(b)]));
+      riservaNum = riserveOrdinati.findIndex(pl => playerKey(pl) === key) + 1;
+    }
+
+    card.innerHTML = `
+      <div class="check">${stat === 'presente' ? '✓' : stat === 'riserva' ? riservaNum : ''}</div>
+      <div class="cognome">${p.cognome}</div>
+      <div class="nome">${p.nome}</div>
+    `;
+
+    card.addEventListener('click', () => handleClick(p, key, raw, nP));
 
     if (stat === 'riserva') gridR.appendChild(card);
     else gridP.appendChild(card);
@@ -696,7 +725,8 @@ function updateUI(newState) {
   document.getElementById('week-label').textContent = getWeekLabel();
 }
 
-async function handleClick(p, key, currentStat, nPresenti) {
+async function handleClick(p, key, currentRaw, nPresenti) {
+  const currentStat = getStatType(currentRaw);
   // Se è già presente e la lista è piena → bloccato, non si può rimuovere
   if (currentStat === 'presente' && nPresenti >= MAX_PRESENTI) {
     showToast('🔒 Lista bloccata — i 10 posti sono confermati!');
@@ -710,7 +740,7 @@ async function handleClick(p, key, currentStat, nPresenti) {
       newStat = 'presente';
       showToast(`✅ ${p.cognome} è PRESENTE`);
     } else {
-      newStat = 'riserva';
+      newStat = 'riserva:' + Date.now();
       showToast(`🟡 ${p.cognome} in RISERVA`);
     }
   } else {
@@ -725,8 +755,7 @@ async function handleClick(p, key, currentStat, nPresenti) {
     updateUI(newState);
   } else {
     const weekKey = getWeekKey();
-    const dbPath  = ref(db, `calcetto/${weekKey}/${key}`);
-    await set(dbPath, newStat);
+    await set(ref(db, `calcetto/${weekKey}/${key}`), newStat);
   }
 }
 
