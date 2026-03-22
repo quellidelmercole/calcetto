@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>⚽ Calcetto del Mercoledì</title>
+<title>⚽ Calcetto Mercoledì</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700;900&display=swap');
 
@@ -343,6 +343,20 @@
     font-weight: 900;
   }
 
+  /* BLOCCATO (lista piena, non cliccabile) */
+  .player-card.presente.locked {
+    cursor: not-allowed;
+    opacity: 0.85;
+  }
+  .player-card.presente.locked::after {
+    content: '🔒';
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
   /* RISERVA */
   .player-card.riserva {
     background: var(--yellow-bg);
@@ -487,8 +501,8 @@
           </g>
         </svg>
         <div id="logo-text">
-          <span class="team-name">QUELLI DEL MERCOLE</span>
-          <span class="team-sub">Calcetto del Mercoledì</span>
+          <span class="team-name">QUELLI DEL MERCOLE'</span>
+          <span class="team-sub">Calcetto · Mercoledì</span>
         </div>
       </div>
       <div id="day-badge">⚽ Mercoledì</div>
@@ -658,11 +672,14 @@ function updateUI(newState) {
   const gridR = document.getElementById('grid-riserve');
   gridR.innerHTML = '';
 
+  const listaBloccata = nP >= MAX_PRESENTI;
+
   PLAYERS.forEach(p => {
     const key  = playerKey(p);
     const stat = state[key] || null;
+    const isLocked = stat === 'presente' && listaBloccata;
     const card = document.createElement('div');
-    card.className = 'player-card' + (stat ? ' ' + stat : '');
+    card.className = 'player-card' + (stat ? ' ' + stat : '') + (isLocked ? ' locked' : '');
     card.dataset.key = key;
     card.innerHTML = `
       <div class="check">${stat ? '✓' : ''}</div>
@@ -680,6 +697,12 @@ function updateUI(newState) {
 }
 
 async function handleClick(p, key, currentStat, nPresenti) {
+  // Se è già presente e la lista è piena → bloccato, non si può rimuovere
+  if (currentStat === 'presente' && nPresenti >= MAX_PRESENTI) {
+    showToast('🔒 Lista bloccata — i 10 posti sono confermati!');
+    return;
+  }
+
   let newStat;
   if (!currentStat) {
     // Era assente → diventa presente o riserva
@@ -691,7 +714,7 @@ async function handleClick(p, key, currentStat, nPresenti) {
       showToast(`🟡 ${p.cognome} in RISERVA`);
     }
   } else {
-    // Era presente/riserva → torna assente
+    // Era riserva → torna assente (i presenti sono bloccati, gestito sopra)
     newStat = null;
     showToast(`❌ ${p.cognome} rimosso`);
   }
