@@ -590,26 +590,29 @@ const PLAYERS = [
 
 // Calcola chiave settimana corrente (es. "2025-W12")
 function getWeekKey() {
+  // Settimana che inizia la DOMENICA e finisce il SABATO
   const now = new Date();
-  const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+  const day = now.getDay(); // 0=dom, 1=lun, ... 6=sab
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() - day); // torna alla domenica
+  sunday.setHours(0, 0, 0, 0);
+  // Chiave: anno + numero settimana basato sulla domenica
+  const yearStart = new Date(sunday.getFullYear(), 0, 1);
+  const weekNo = Math.ceil(((sunday - yearStart) / 86400000 + 1) / 7);
+  return `${sunday.getFullYear()}-SW${String(weekNo).padStart(2, '0')}`;
 }
 
 function getWeekLabel() {
   const now = new Date();
-  // Trova lunedì della settimana corrente
-  const day = now.getDay() || 7;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - day + 1);
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
+  const day = now.getDay(); // 0=dom
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() - day);
+  const saturday = new Date(sunday);
+  saturday.setDate(sunday.getDate() + 6);
   const mesi = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
-  const lun = `${monday.getDate()} ${mesi[monday.getMonth()]}`;
   const dom = `${sunday.getDate()} ${mesi[sunday.getMonth()]}`;
-  return `📅 ${lun} – ${dom} ${sunday.getFullYear()}`;
+  const sab = `${saturday.getDate()} ${mesi[saturday.getMonth()]}`;
+  return `📅 ${dom} – ${sab} ${saturday.getFullYear()}`;
 }
 
 // ─── DEMO MODE (senza Firebase) ──────────────────────
