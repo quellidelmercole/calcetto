@@ -393,6 +393,114 @@
   }
   #toast.show { transform: translateX(-50%) translateY(0); }
 
+  /* ── DIALOG CONFERMA ── */
+  #dialog-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(4px);
+  }
+  #dialog-overlay.show { display: flex; }
+
+  #dialog-box {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 18px;
+    padding: 28px 24px 22px;
+    max-width: 320px;
+    width: 100%;
+    text-align: center;
+    animation: dialog-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes dialog-in {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
+  #dialog-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  #dialog-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  #dialog-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 30px;
+    letter-spacing: 1px;
+    color: var(--white);
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  #dialog-nome {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+
+  #dialog-question {
+    font-size: 14px;
+    color: var(--white);
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+
+  #dialog-buttons {
+    display: flex;
+    gap: 12px;
+  }
+
+  #btn-no {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  #btn-no:active { background: var(--surface2); }
+
+  #btn-si {
+    flex: 2;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    background: var(--green);
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 900;
+  }
+  #btn-si:active { transform: scale(0.97); }
+  #btn-si.riserva-mode {
+    background: var(--yellow);
+  }
+  #btn-si.rimuovi-mode {
+    background: var(--red);
+    color: #fff;
+  }
+
   /* ── LOADING ── */
   #loading {
     display: flex;
@@ -539,6 +647,21 @@
 
 <div id="toast"></div>
 
+<!-- Dialog conferma -->
+<div id="dialog-overlay">
+  <div id="dialog-box">
+    <div id="dialog-icon">⚽</div>
+    <div id="dialog-title">Sei tu?</div>
+    <div id="dialog-name"></div>
+    <div id="dialog-nome"></div>
+    <div id="dialog-question"></div>
+    <div id="dialog-buttons">
+      <button id="btn-no">NO</button>
+      <button id="btn-si">SÌ</button>
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDK -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -624,6 +747,67 @@ let state = {};
 
 // ─── INIT ────────────────────────────────────────────
 let db, weekRef;
+
+// ── Dialog di conferma ──────────────────────────────
+function showDialog(p, key, currentRaw, nPresenti) {
+  const currentStat = getStatType(currentRaw);
+
+  // Blocco lista piena
+  if (currentStat === 'presente' && nPresenti >= MAX_PRESENTI) {
+    showToast('🔒 Lista bloccata — i 10 posti sono confermati!');
+    return;
+  }
+
+  const overlay = document.getElementById('dialog-overlay');
+  const btnSi   = document.getElementById('btn-si');
+  const btnNo   = document.getElementById('btn-no');
+
+  // Contenuto dialog
+  document.getElementById('dialog-name').textContent = p.cognome;
+  document.getElementById('dialog-nome').textContent = p.nome;
+
+  if (!currentStat) {
+    // Vuole aggiungersi
+    const saraPosto = nPresenti < MAX_PRESENTI;
+    document.getElementById('dialog-icon').textContent = saraPosto ? '🟢' : '🟡';
+    document.getElementById('dialog-question').textContent =
+      saraPosto
+        ? 'Confermi la tua presenza per mercoledì?'
+        : 'I 10 posti sono esauriti. Vuoi metterti in lista riserve?';
+    btnSi.textContent = 'SÌ';
+    btnSi.className = saraPosto ? '' : 'riserva-mode';
+  } else {
+    // Vuole togliersi
+    document.getElementById('dialog-icon').textContent = '❌';
+    document.getElementById('dialog-question').textContent =
+      currentStat === 'presente'
+        ? 'Vuoi rimuovere la tua presenza?'
+        : 'Vuoi rimuoverti dalla lista riserve?';
+    btnSi.textContent = 'SÌ, RIMUOVI';
+    btnSi.className = 'rimuovi-mode';
+  }
+
+  overlay.classList.add('show');
+
+  // Clona i bottoni per rimuovere vecchi listener
+  const newBtnSi = btnSi.cloneNode(true);
+  const newBtnNo = btnNo.cloneNode(true);
+  btnSi.parentNode.replaceChild(newBtnSi, btnSi);
+  btnNo.parentNode.replaceChild(newBtnNo, btnNo);
+
+  newBtnSi.addEventListener('click', () => {
+    overlay.classList.remove('show');
+    handleClick(p, key, currentRaw, nPresenti);
+  });
+  newBtnNo.addEventListener('click', () => {
+    overlay.classList.remove('show');
+  });
+
+  // Chiudi cliccando fuori
+  overlay.onclick = (e) => {
+    if (e.target === overlay) overlay.classList.remove('show');
+  };
+}
 
 function showToast(msg, duration = 2200) {
   const t = document.getElementById('toast');
@@ -718,7 +902,7 @@ function updateUI(newState) {
       <div class="nome">${p.nome}</div>
     `;
 
-    card.addEventListener('click', () => handleClick(p, key, raw, nP));
+    card.addEventListener('click', () => showDialog(p, key, raw, nP));
 
     if (stat === 'riserva') gridR.appendChild(card);
     else gridP.appendChild(card);
@@ -730,11 +914,6 @@ function updateUI(newState) {
 
 async function handleClick(p, key, currentRaw, nPresenti) {
   const currentStat = getStatType(currentRaw);
-  // Se è già presente e la lista è piena → bloccato, non si può rimuovere
-  if (currentStat === 'presente' && nPresenti >= MAX_PRESENTI) {
-    showToast('🔒 Lista bloccata — i 10 posti sono confermati!');
-    return;
-  }
 
   let newStat;
   if (!currentStat) {
