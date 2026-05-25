@@ -534,6 +534,128 @@
   }
   #offline-notice.show { display: block; }
 
+  /* ── PILL STATISTICHE ── */
+  #pill-stats {
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #pill-stats:active { background: var(--surface2); }
+  #pill-stats.active-page {
+    background: #1a1a3a;
+    color: #7b8cff;
+  }
+
+  /* ── PAGINA STATISTICHE ── */
+  #stats-page {
+    display: none;
+    padding: 12px 12px 80px;
+  }
+  #stats-page.show { display: block; }
+
+  #stats-header {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 4px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #stats-header span { color: var(--muted); font-size: 11px; }
+
+  #stats-note {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 8px;
+    background: var(--surface);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    line-height: 1.6;
+  }
+
+  .stat-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    transition: border-color 0.2s;
+  }
+
+  .stat-rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--muted);
+    min-width: 28px;
+    text-align: center;
+  }
+  .stat-rank.gold   { color: #ffd700; }
+  .stat-rank.silver { color: #c0c0c0; }
+  .stat-rank.bronze { color: #cd7f32; }
+
+  .stat-info { flex: 1; }
+  .stat-cognome {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 19px;
+    letter-spacing: 1px;
+    color: var(--white);
+    line-height: 1;
+  }
+  .stat-nome {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .stat-bar-wrap {
+    flex: 1;
+    max-width: 120px;
+  }
+  .stat-bar-bg {
+    height: 6px;
+    background: var(--surface2);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--green);
+    transition: width 0.6s cubic-bezier(0.34,1.2,0.64,1);
+  }
+  .stat-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .stat-pct-big {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    color: var(--green);
+    min-width: 56px;
+    text-align: right;
+    line-height: 1;
+  }
+
+  #stats-locked-msg {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  #stats-locked-msg .lock-icon { font-size: 40px; margin-bottom: 12px; }
+
   /* NUMERIC BADGE */
   .num-badge {
     display: inline-flex;
@@ -610,7 +732,7 @@
           </g>
         </svg>
         <div id="logo-text">
-          <span class="team-name">QUELLI DEL MERCOLE</span>
+          <span class="team-name">QUELLI DEL MERCOLE'</span>
           <span class="team-sub">Calcetto · Mercoledì</span>
         </div>
       </div>
@@ -627,6 +749,9 @@
         <span class="pill-label">RISERVE</span>
         <span class="pill-num num-badge" id="count-riserve">0</span>
       </div>
+      <div class="status-pill" id="pill-stats">
+        <span class="pill-label">📊 STATS</span>
+      </div>
     </div>
     <div id="progress-wrap"><div id="progress-bar"></div></div>
     <div id="confirmed-banner">✅ LISTA COMPLETA — SI GIOCA!</div>
@@ -634,6 +759,17 @@
 
   <div id="actions-bar">
     <span id="week-label">Settimana corrente</span>
+  </div>
+
+  <!-- Pagina Statistiche -->
+  <div id="stats-page">
+    <div id="stats-header">
+      <span>🏆 CLASSIFICA PRESENZE</span>
+      <span id="stats-subtitle"></span>
+    </div>
+    <div id="stats-note"></div>
+    <div id="stats-list"></div>
+    <div id="stats-locked-msg" style="display:none;"></div>
   </div>
 
   <div id="grid-wrap">
@@ -747,6 +883,127 @@ let state = {};
 
 // ─── INIT ────────────────────────────────────────────
 let db, weekRef;
+
+// ── STATISTICHE ─────────────────────────────────────
+const STATS_START = new Date('2026-03-29'); // Data inizio conteggio
+
+function getStatsWeekKey(dateObj) {
+  // Stesso algoritmo di getWeekKey() ma per una data specifica
+  const day = dateObj.getDay();
+  const sunday = new Date(dateObj);
+  sunday.setDate(dateObj.getDate() - day);
+  sunday.setHours(0,0,0,0);
+  const yearStart = new Date(sunday.getFullYear(), 0, 1);
+  const weekNo = Math.ceil(((sunday - yearStart) / 86400000 + 1) / 7);
+  return `${sunday.getFullYear()}-SW${String(weekNo).padStart(2,'0')}`;
+}
+
+function toggleStatsPage() {
+  const statsPage = document.getElementById('stats-page');
+  const gridWrap  = document.getElementById('grid-wrap');
+  const pill      = document.getElementById('pill-stats');
+  const actionsBar = document.getElementById('actions-bar');
+
+  const isOpen = statsPage.classList.contains('show');
+  if (isOpen) {
+    statsPage.classList.remove('show');
+    gridWrap.style.display = '';
+    actionsBar.style.display = '';
+    pill.classList.remove('active-page');
+  } else {
+    statsPage.classList.add('show');
+    gridWrap.style.display = 'none';
+    actionsBar.style.display = 'none';
+    pill.classList.add('active-page');
+    renderStats();
+  }
+}
+
+async function renderStats() {
+  const listEl   = document.getElementById('stats-list');
+  const lockedEl = document.getElementById('stats-locked-msg');
+  const noteEl   = document.getElementById('stats-note');
+  const subEl    = document.getElementById('stats-subtitle');
+
+  listEl.innerHTML = '';
+
+  lockedEl.style.display = 'none';
+
+  // Calcola tutte le settimane dal STATS_START ad oggi
+  const now = new Date();
+  const settimane = [];
+  let cur = new Date(STATS_START);
+  while (cur <= now) {
+    settimane.push(getStatsWeekKey(cur));
+    cur.setDate(cur.getDate() + 7);
+  }
+  // Includi settimana corrente se non già inclusa
+  const curKey = getWeekKey();
+  if (!settimane.includes(curKey)) settimane.push(curKey);
+
+  const totaleSettimane = settimane.length;
+  subEl.textContent = `${totaleSettimane} partite`;
+
+  // Carica tutte le settimane da Firebase in parallelo
+  const presenze = {}; // { playerKey: conteggio }
+  PLAYERS.forEach(p => { presenze[playerKey(p)] = 0; });
+
+  const promises = settimane.map(wk =>
+    get(ref(db, `calcetto/${wk}`)).then(snap => {
+      const data = snap.val() || {};
+      PLAYERS.forEach(p => {
+        const k = playerKey(p);
+        if (getStatType(data[k]) === 'presente') {
+          presenze[k] = (presenze[k] || 0) + 1;
+        }
+      });
+    }).catch(() => {})
+  );
+  await Promise.all(promises);
+
+  // Ordina dal migliore al peggiore
+  const classifica = PLAYERS
+    .map(p => ({
+      p,
+      key: playerKey(p),
+      presenze: presenze[playerKey(p)] || 0,
+      pct: totaleSettimane > 0
+        ? Math.round((presenze[playerKey(p)] || 0) / totaleSettimane * 100)
+        : 0
+    }))
+    .sort((a, b) => b.pct - a.pct || b.presenze - a.presenze || a.p.cognome.localeCompare(b.p.cognome));
+
+  noteEl.style.display = '';
+  noteEl.textContent   = `Dal 29 mar 2026 · ${totaleSettimane} settiman${totaleSettimane === 1 ? 'a' : 'e'} giocate`;
+
+  classifica.forEach((item, i) => {
+    const rank = i + 1;
+    const rankClass = rank === 1 ? 'gold' : rank === 2 ? 'silver' : rank === 3 ? 'bronze' : '';
+    const rankIcon  = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+
+    // Colore barra in base alla percentuale
+    const barColor = item.pct >= 70 ? 'var(--green)'
+                   : item.pct >= 40 ? 'var(--yellow)'
+                   : 'var(--red)';
+
+    const row = document.createElement('div');
+    row.className = 'stat-row';
+    row.innerHTML = `
+      <div class="stat-rank ${rankClass}">${rankIcon}</div>
+      <div class="stat-info">
+        <div class="stat-cognome">${item.p.cognome}</div>
+        <div class="stat-nome">${item.p.nome} · ${item.presenze}/${totaleSettimane}</div>
+        <div class="stat-bar-wrap" style="max-width:100%;margin-top:6px;">
+          <div class="stat-bar-bg">
+            <div class="stat-bar-fill" style="width:${item.pct}%;background:${barColor};"></div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-pct-big" style="color:${barColor};">${item.pct}%</div>
+    `;
+    listEl.appendChild(row);
+  });
+}
 
 // ── Dialog di conferma ──────────────────────────────
 function showDialog(p, key, currentRaw, nPresenti) {
@@ -972,6 +1229,9 @@ document.getElementById('btn-reset').addEventListener('click', async () => {
     showToast('🔄 Presenze azzerate');
   }
 });
+
+// Pill statistiche
+document.getElementById('pill-stats').addEventListener('click', toggleStatsPage);
 
 // Online/offline
 window.addEventListener('offline', () => document.getElementById('offline-notice').classList.add('show'));
