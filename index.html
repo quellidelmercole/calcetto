@@ -930,16 +930,26 @@ async function renderStats() {
   lockedEl.style.display = 'none';
 
   // Calcola tutte le settimane dal STATS_START ad oggi
+  // Partiamo sempre dalla domenica di STATS_START e avanziamo di 7 in 7
+  // fino a coprire la settimana corrente (quella che contiene oggi)
   const now = new Date();
   const settimane = [];
+
+  // Trova la domenica di inizio (STATS_START è già una domenica: 29/03/2026)
   let cur = new Date(STATS_START);
-  while (cur <= now) {
+  cur.setHours(0, 0, 0, 0);
+
+  // Trova la domenica della settimana corrente
+  const todaySunday = new Date(now);
+  todaySunday.setDate(now.getDate() - now.getDay());
+  todaySunday.setHours(0, 0, 0, 0);
+
+  // Includi tutte le domeniche da STATS_START fino alla domenica di questa settimana
+  while (cur <= todaySunday) {
     settimane.push(getStatsWeekKey(cur));
+    cur = new Date(cur);
     cur.setDate(cur.getDate() + 7);
   }
-  // Includi settimana corrente se non già inclusa
-  const curKey = getWeekKey();
-  if (!settimane.includes(curKey)) settimane.push(curKey);
 
   const totaleSettimane = settimane.length;
   subEl.textContent = `${totaleSettimane} partite`;
